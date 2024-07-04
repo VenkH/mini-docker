@@ -3,7 +3,11 @@
 
 package container
 
-import log "github.com/sirupsen/logrus"
+import (
+	log "github.com/sirupsen/logrus"
+	"os"
+	"syscall"
+)
 
 /*
 这是容器进程启动后执行的第一件事：
@@ -15,9 +19,9 @@ func RunContainerInitProcess(cmd string, args []string) error {
 
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
-	argv := []string{command}
-	if err := syscall.Exec(command, argv, os.Environ()); err != nil {
-		logrus.Errorf(err.Error())
+	argv := []string{cmd}
+	if err := syscall.Exec(cmd, argv, os.Environ()); err != nil {
+		log.Errorf(err.Error())
 	}
 	return nil
 }
