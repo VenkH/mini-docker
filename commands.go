@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"mini-docker/cgroups/subsystems"
 	"mini-docker/container"
 )
 
@@ -16,6 +17,18 @@ var runCommand = cli.Command{
 		cli.BoolFlag{
 			Name:  "ti",
 			Usage: "enable tty",
+		},
+		cli.StringFlag{
+			Name:  "memory",
+			Usage: "memory limit",
+		},
+		cli.StringFlag{
+			Name:  "cpushare",
+			Usage: "cpu share limit",
+		},
+		cli.StringFlag{
+			Name:  "cpuset",
+			Usage: "cpu set limit",
 		},
 	},
 	/*
@@ -30,7 +43,12 @@ var runCommand = cli.Command{
 		}
 		cmd := ctx.Args().Get(0)
 		tty := ctx.Bool("ti")
-		Run(tty, cmd)
+		resourceConfig := subsystems.ResourceConfig{
+			MemoryLimit: ctx.String("memory"),
+			CpuSet:      ctx.String("cpuset"),
+			CpuShare:    ctx.String("cpushare"),
+		}
+		Run(tty, cmd, resourceConfig)
 		return nil
 	},
 }
