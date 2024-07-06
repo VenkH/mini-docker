@@ -14,7 +14,10 @@ func main() {
 	app.Name = "mini-docker"
 	app.Usage = usage
 
-	app.Commands = []cli.Command{}
+	app.Commands = []cli.Command{
+		initCommand,
+		runCommand,
+	}
 	app.Before = func(context *cli.Context) error {
 		// 设置日志格式化工具
 		log.SetFormatter(&log.JSONFormatter{})
