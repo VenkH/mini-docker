@@ -6,13 +6,15 @@ import (
 	"mini-docker/cgroups/subsystems"
 	"mini-docker/container"
 	"os"
+	"strings"
 )
 
-func Run(tty bool, cmd string, res subsystems.ResourceConfig) {
-	parent := container.NewParentProcess(tty, cmd)
+func Run(tty bool, cmdArray []string, res subsystems.ResourceConfig) {
+	parent, write := container.NewParentProcess(tty)
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
+	sendInitCommand(cmdArray, write)
 
 	manager := cgroups.NewCgroupManager("mini-docker-cgroup", res)
 	manager.Set()
@@ -21,4 +23,10 @@ func Run(tty bool, cmd string, res subsystems.ResourceConfig) {
 
 	parent.Wait()
 	os.Exit(-1)
+}
+func sendInitCommand(cmdArray []string, writePipe *os.File) {
+	command := strings.Join(cmdArray, " ")
+	log.Infof("command all is %v", command)
+	writePipe.WriteString(command)
+	writePipe.Close()
 }

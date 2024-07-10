@@ -41,14 +41,14 @@ var runCommand = cli.Command{
 		if len(ctx.Args()) < 1 {
 			return fmt.Errorf("missing container command")
 		}
-		cmd := ctx.Args().Get(0)
+		cmdArray := ctx.Args()
 		tty := ctx.Bool("ti")
 		resourceConfig := subsystems.ResourceConfig{
 			MemoryLimit: ctx.String("memory"),
 			CpuSet:      ctx.String("cpuset"),
 			CpuShare:    ctx.String("cpushare"),
 		}
-		Run(tty, cmd, resourceConfig)
+		Run(tty, cmdArray, resourceConfig)
 		return nil
 	},
 }
@@ -66,7 +66,7 @@ var initCommand = cli.Command{
 		cmd := ctx.Args().Get(0)
 
 		log.Infof("command %s", cmd)
-		err := container.RunContainerInitProcess(cmd, nil)
+		err := container.RunContainerInitProcess()
 		return err
 	},
 }
