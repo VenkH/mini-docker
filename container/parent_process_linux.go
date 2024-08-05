@@ -33,7 +33,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 		cmd.Stderr = os.Stderr
 	}
 	cmd.ExtraFiles = []*os.File{read}
-	cmd.Dir = "/tmp/busybox"
+	cmd.Dir = "/home/joe/busybox"
 	return cmd, write
 }
 
