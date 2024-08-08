@@ -22,6 +22,9 @@ func Run(tty bool, cmdArray []string, res subsystems.ResourceConfig) {
 	defer manager.Destroy()
 
 	parent.Wait()
+	mntURL := "/home/joe/merged/"
+	rootURL := "/home/joe/"
+	container.DeleteWorkSpace(rootURL, mntURL)
 	os.Exit(-1)
 }
 func sendInitCommand(cmdArray []string, writePipe *os.File) {

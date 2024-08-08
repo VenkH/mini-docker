@@ -4,6 +4,7 @@
 package container
 
 import (
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 )
@@ -13,4 +14,7 @@ import (
 // 此处仅为占位，兼容的写法/*
 func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	return nil, nil
+}
+func DeleteWorkSpace(rootURL string, mntURL string) {
+	log.Errorf("Withoud window implement")
 }

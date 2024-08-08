@@ -78,7 +78,7 @@ func setUpMount() error {
 	if err := pivotRoot(pwd); err != nil {
 		return err
 	}
-
+	// TODO 解决source的问题
 	//// 构建要在 shell 中运行的命令
 	//cmd := exec.Command("/bin/sh", "-c", ". /etc/profile && echo $PATH")
 	//
