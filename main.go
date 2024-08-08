@@ -17,6 +17,7 @@ func main() {
 	app.Commands = []cli.Command{
 		initCommand,
 		runCommand,
+		commitCommand,
 	}
 	app.Before = func(context *cli.Context) error {
 		// 设置日志格式化工具

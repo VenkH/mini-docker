@@ -4,6 +4,6 @@
 package container
 
 // RunContainerInitProcess 占位
-func RunContainerInitProcess(cmd string, args []string) error {
+func RunContainerInitProcess() error {
 	return nil
 }

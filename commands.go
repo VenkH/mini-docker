@@ -30,6 +30,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset",
 			Usage: "cpu set limit",
 		},
+		cli.StringFlag{
+			Name:  "v",
+			Usage: "volume,e.g.: -v /ect/conf:/etc/conf",
+		},
 	},
 	/*
 		这里是mini-docker执行run命令时执行的函数
@@ -41,14 +45,16 @@ var runCommand = cli.Command{
 		if len(ctx.Args()) < 1 {
 			return fmt.Errorf("missing container command")
 		}
-		cmd := ctx.Args().Get(0)
+		cmdArray := ctx.Args()
 		tty := ctx.Bool("ti")
 		resourceConfig := subsystems.ResourceConfig{
 			MemoryLimit: ctx.String("memory"),
 			CpuSet:      ctx.String("cpuset"),
 			CpuShare:    ctx.String("cpushare"),
 		}
-		Run(tty, cmd, resourceConfig)
+		log.Infof("Resource config: %v", resourceConfig)
+		volume := ctx.String("v")
+		Run(tty, cmdArray, resourceConfig, volume)
 		return nil
 	},
 }
@@ -66,7 +72,20 @@ var initCommand = cli.Command{
 		cmd := ctx.Args().Get(0)
 
 		log.Infof("command %s", cmd)
-		err := container.RunContainerInitProcess(cmd, nil)
+		err := container.RunContainerInitProcess()
 		return err
+	},
+}
+
+var commitCommand = cli.Command{
+	Name:  "commit",
+	Usage: "commit container to image",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("missing image name")
+		}
+		imageName := context.Args().Get(0)
+		commitContainer(imageName)
+		return nil
 	},
 }
