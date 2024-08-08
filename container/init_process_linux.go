@@ -36,9 +36,12 @@ func RunContainerInitProcess() error {
 	if err := setUpMount(); err != nil {
 		log.Errorf("setup mount error %v", err)
 	}
-	//if err := syscall.Exec("/bin/sh", []string{"-c", "/etc/profile"}, os.Environ()); err != nil {
-	//	log.Errorf("suorce error %v", err)
-	//}
+
+	// 修改环境变量，添加/bin目录
+	env_path := os.Getenv("PATH")
+	new_path := env_path + ":/bin"
+	os.Setenv("PATH", new_path)
+
 	path, err := exec.LookPath(cmdArray[0])
 	if err != nil {
 		log.Errorf("Exec look path error %v", err)
@@ -78,21 +81,6 @@ func setUpMount() error {
 	if err := pivotRoot(pwd); err != nil {
 		return err
 	}
-	// TODO 解决source的问题
-	//// 构建要在 shell 中运行的命令
-	//cmd := exec.Command("/bin/sh", "-c", ". /etc/profile && echo $PATH")
-	//
-	//// 获取命令的输出
-	//if output, err := cmd.Output(); err != nil {
-	//	fmt.Printf("Error: %v\n", err)
-	//} else {
-	//	fmt.Printf("Output: %s\n", output)
-	//}
-
-	//cmd := exec.Command("/bin/sh", "-c", "source /etc/profile")
-	//if err := cmd.Run(); err != nil {
-	//	log.Errorf("source failed %v", err)
-	//}
 
 	//mount proc
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
