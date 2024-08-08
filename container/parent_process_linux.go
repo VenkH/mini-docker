@@ -4,9 +4,12 @@
 package container
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"path"
+	"strings"
 	"syscall"
 )
 
@@ -14,7 +17,7 @@ import (
 使用exec创建一个进程，执行init命令和用户指定的初始化程序
 /proc/self/exe是一个符号链接，指的是当前程序，比如ssh连接服务器时，exe->/usr/bin/bash
 */
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	read, write, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -35,7 +38,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	cmd.ExtraFiles = []*os.File{read}
 	mntURL := "/home/joe/merged/"
 	rootURL := "/home/joe/"
-	NewWorkSpace(rootURL, mntURL)
+	NewWorkSpace(rootURL, mntURL, volume)
 	cmd.Dir = mntURL
 	return cmd, write
 }
@@ -49,10 +52,57 @@ func NewPipe() (read, write *os.File, err error) {
 }
 
 // NewWorkSpace Create an Overlay2 filesystem as container root workspace
-func NewWorkSpace(rootPath string, mntURL string) {
+func NewWorkSpace(rootPath string, mntURL string, volume string) {
 	createLower(rootPath)
 	createDirs(rootPath)
 	mountOverlayFS(rootPath, mntURL)
+
+	// 如果指定了volume则还需要mount volume
+	if volume != "" {
+		mntPath := path.Join(rootPath, "merged")
+		hostPath, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("extract volume failed，maybe volume parameter input is not correct，detail:%v", err)
+			return
+		}
+		mountVolume(mntPath, hostPath, containerPath)
+	}
+}
+
+// volumeExtract 通过冒号分割解析volume目录，比如 -v /tmp:/tmp
+func volumeExtract(volume string) (sourcePath, destinationPath string, err error) {
+	parts := strings.Split(volume, ":")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid volume [%s], must split by `:`", volume)
+	}
+
+	sourcePath, destinationPath = parts[0], parts[1]
+	if sourcePath == "" || destinationPath == "" {
+		return "", "", fmt.Errorf("invalid volume [%s], path can't be empty", volume)
+	}
+
+	return sourcePath, destinationPath, nil
+}
+
+// mountVolume 使用 bind mount 挂载 volume
+func mountVolume(mntPath, hostPath, containerPath string) {
+	// 创建宿主机目录
+	if err := os.Mkdir(hostPath, 0777); err != nil {
+		log.Infof("mkdir parent dir %s error. %v", hostPath, err)
+	}
+	// 拼接出对应的容器目录在宿主机上的的位置，并创建对应目录
+	containerPathInHost := path.Join(mntPath, containerPath)
+	if err := os.Mkdir(containerPathInHost, 0777); err != nil {
+		log.Infof("mkdir container dir %s error. %v", containerPathInHost, err)
+	}
+	// 通过bind mount 将宿主机目录挂载到容器目录
+	// mount -o bind /hostPath /containerPath
+	cmd := exec.Command("mount", "-o", "bind", hostPath, containerPathInHost)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("mount volume failed. %v", err)
+	}
 }
 
 // createLower 将busybox作为overlayfs的lower层
@@ -108,9 +158,35 @@ func mountOverlayFS(rootURL string, mntURL string) {
 }
 
 // DeleteWorkSpace Delete the AUFS filesystem while container exit
-func DeleteWorkSpace(rootURL string, mntURL string) {
+func DeleteWorkSpace(rootURL string, mntURL string, volume string) {
+	mntPath := path.Join(rootURL, "merged")
+
+	// 如果指定了volume则需要umount volume
+	// NOTE: 一定要要先 umount volume ，然后再删除目录，否则由于 bind mount 存在，删除临时目录会导致 volume 目录中的数据丢失。
+	if volume != "" {
+		_, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("extract volume failed，maybe volume parameter input is not correct，detail:%v", err)
+			return
+		}
+		umountVolume(mntPath, containerPath)
+	}
+
 	umountOverlayFS(mntURL)
 	deleteDirs(rootURL)
+}
+
+func umountVolume(mntPath, containerPath string) {
+	// mntPath 为容器在宿主机上的挂载点，例如 /root/merged
+	// containerPath 为 volume 在容器中对应的目录，例如 /root/tmp
+	// containerPathInHost 则是容器中目录在宿主机上的具体位置，例如 /root/merged/root/tmp
+	containerPathInHost := path.Join(mntPath, containerPath)
+	cmd := exec.Command("umount", containerPathInHost)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Umount volume failed. %v", err)
+	}
 }
 
 func umountOverlayFS(mntURL string) {

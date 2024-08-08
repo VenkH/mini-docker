@@ -30,6 +30,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset",
 			Usage: "cpu set limit",
 		},
+		cli.StringFlag{
+			Name:  "v",
+			Usage: "volume,e.g.: -v /ect/conf:/etc/conf",
+		},
 	},
 	/*
 		这里是mini-docker执行run命令时执行的函数
@@ -48,7 +52,9 @@ var runCommand = cli.Command{
 			CpuSet:      ctx.String("cpuset"),
 			CpuShare:    ctx.String("cpushare"),
 		}
-		Run(tty, cmdArray, resourceConfig)
+		log.Infof("Resource config: %v", resourceConfig)
+		volume := ctx.String("v")
+		Run(tty, cmdArray, resourceConfig, volume)
 		return nil
 	},
 }

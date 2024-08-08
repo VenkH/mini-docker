@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func Run(tty bool, cmdArray []string, res subsystems.ResourceConfig) {
-	parent, write := container.NewParentProcess(tty)
+func Run(tty bool, cmdArray []string, res subsystems.ResourceConfig, volume string) {
+	parent, write := container.NewParentProcess(tty, volume)
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
@@ -24,7 +24,7 @@ func Run(tty bool, cmdArray []string, res subsystems.ResourceConfig) {
 	parent.Wait()
 	mntURL := "/home/joe/merged/"
 	rootURL := "/home/joe/"
-	container.DeleteWorkSpace(rootURL, mntURL)
+	container.DeleteWorkSpace(rootURL, mntURL, volume)
 	os.Exit(-1)
 }
 func sendInitCommand(cmdArray []string, writePipe *os.File) {
